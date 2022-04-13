@@ -1,8 +1,6 @@
 package org.SingleFlight;
-import sun.security.krb5.internal.KdcErrException;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.Hashtable;
 import java.util.function.Supplier;
 
 /*
@@ -10,22 +8,21 @@ import java.util.function.Supplier;
  R: 存储的内容类型
  */
 public class SingleFlight<K, V> {
-    private ConcurrentHashMap<K, SegmentLock<V>> map = new ConcurrentHashMap<>();
+//    private ConcurrentHashMap<K, SegmentLock<V>> map = new ConcurrentHashMap<>();
+    private Hashtable<K, SegmentLock<V>> map = new Hashtable<>();
 
 
     public V kaishiqifei(K key, Supplier<V> supplier) {
         return produce(key, supplier);
     }
 
-    // TODO 可以重写这个方法实现使用redis存储缓存，建议在redis缓存消失的时候，调用这一个库，并且在生产方法里将缓存重新置入
-    // TODO 拿key做为锁的可行性
+    // TODO 建议在redis缓存消失的时候，调用这一个库，得到结果后再重新设置缓存
     // TODO 用条件变量要结局，remove的时候，新进来了相同key的问题，这个新来的消费者，不会被notify，所以要将判断是否生产者与删除条件共用一把锁
-
 
     private SegmentLock<V> setKey(K key) {
         synchronized (key) {
-            // 二次检查
             SegmentLock<V> segmentLock = new SegmentLock<V>();
+            // 通过putIfAbsent做检查
             SegmentLock<V> res = map.putIfAbsent(key, segmentLock);
             // 如果为null则put成功，将segmentLock返回给生产者进行setRes
             if (res == null) {
@@ -46,7 +43,7 @@ public class SingleFlight<K, V> {
         V v = supplier.get();
         segmentLock.setResult(v);
         if (segmentLock.count.get() == 0) {
-            clearCache(key);
+            clearCache(key, segmentLock);
         }
         segmentLock.lock.unlock();
         return v;
@@ -60,16 +57,18 @@ public class SingleFlight<K, V> {
         if (lockStatus) {
             res.count.incrementAndGet();
             res.lock.lock(); // 阻塞等待
+//            System.out.println(res == map.get(key));
             int newCount = res.count.decrementAndGet(); // 当前数值
             if (newCount == 0) {
-                SegmentLock<V> oldSegmentLock = clearCache(key);
-                if (oldSegmentLock == null) {
-                    try {
-                        throw new Exception("删除失败，可能出现线程冲突问题");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
+                boolean removeRes = clearCache(key, res);
+//                if (!removeRes) {
+//                    try {
+//                        System.out.println(res == map.get(key));
+//                        throw new Exception("删除失败，可能出现线程冲突问题");
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                }
             }
             res.lock.unlock();
             return res.result;
@@ -79,8 +78,8 @@ public class SingleFlight<K, V> {
         return null;
     }
     // 清除某个key的缓存
-    private SegmentLock<V> clearCache(K key) {
-       return map.remove(key);
+    private synchronized boolean clearCache(K key,  SegmentLock<V> value) {
+       return map.remove(key, value);
     }
 
 

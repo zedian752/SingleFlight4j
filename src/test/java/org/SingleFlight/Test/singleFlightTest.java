@@ -2,13 +2,11 @@ package org.SingleFlight.Test;
 
 import org.SingleFlight.SingleFlight;
 import org.testng.annotations.Test;
-
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -18,9 +16,9 @@ public class singleFlightTest {
     // 主测试函数，测试生产流程
     @Test
     public void test1() {
-        int threadCount = 5; // 线程数
+        int threadCount = 20; // 线程数
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount); // 线程池
-        int count = 100; // 并发次数
+        int count = 1000; // 并发次数
         List<String> resList = new CopyOnWriteArrayList<>(); // 保存结果
         CountDownLatch countDownLatch = new CountDownLatch(count); // 计数器
         AtomicInteger produceCount = new AtomicInteger(0); // 记录生产次数
@@ -30,6 +28,7 @@ public class singleFlightTest {
         for (int i = 0 ; i < count; ++i) {
             int finalI = i;
             Runnable task = () -> {
+                System.out.println("生产");
                 String res = singleFlight.kaishiqifei(String.valueOf(finalI % round).intern(), () -> {
                 long startTime = System.currentTimeMillis();
                     try {
