@@ -1,17 +1,20 @@
 package org.SingleFlight;
 
 
-import lombok.Data;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-
-@Data
 public class SegmentLock<V>{
-    // 替代条件变量做阻塞和唤起
-    public ReentrantLock lock = new ReentrantLock();
     // 存储需要的消费次数
-    public AtomicInteger count = new AtomicInteger(0);
+//    public AtomicInteger count = new AtomicInteger(0);
     // 结果
     public V result;
+    public Boolean isProduced = false;
+    public ReentrantReadWriteLock.ReadLock readLock;
+    public ReentrantReadWriteLock.WriteLock writeLock;
+    public SegmentLock() {
+        ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+        this.readLock = readWriteLock.readLock();
+        this.writeLock = readWriteLock.writeLock();
+    }
+
 }
