@@ -1,7 +1,5 @@
 package org.SingleFlight;
-
-
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.CompletableFuture;
 
 public class SegmentLock<V>{
     // 存储需要的消费次数

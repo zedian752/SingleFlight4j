@@ -13,7 +13,7 @@ public class SingleFlight<K, V> {
 
     public V setResult(K key, Task<V> supplier) throws Throwable {
         if (key == null) throw new NullPointerException();
-        SegmentLock<V> oldSegmentLock = map.get(key); // 查 如果能查的到那么就是能用的，有可能是已经生产好的，也有可能正在生产
+        SegmentLock<V> oldSegmentLock = map.get(key); // 查：如果能查的到那么就是能用的，有可能是已经生产好的，也有可能正在生产
         if (oldSegmentLock != null) {
 //            System.out.println("消费1 key：" + key);
             return getResult(oldSegmentLock);
@@ -30,7 +30,7 @@ public class SingleFlight<K, V> {
                 segmentLock.result = v;
                 segmentLock.isProduced = true;
                 if (!map.remove(key, segmentLock)) { // 防止删除错误的元素
-                    System.out.println("移除元素失败！");
+//                    System.out.println("移除元素失败！");
                 }
             } catch (Throwable e) {
               map.remove(key, segmentLock);
@@ -38,7 +38,7 @@ public class SingleFlight<K, V> {
             } finally {
                 segmentLock.writeLock.unlock();
             }
-            return v;
+            return new Result<V>(v, Result.RESULT_TYPE.PRODUCER);
         } else {
 //            System.out.println("消费0 key：" + key);
             return getResult(oldSegmentLock);
@@ -58,9 +58,4 @@ public class SingleFlight<K, V> {
         }
         return oldSegmentLock.result;
     }
-
-    // TODO 建议在redis缓存消失的时候，调用这一个库，得到结果后再重新设置缓存
-    // TODO 线程错误处理 这个是真的要做的
-
-
 }
