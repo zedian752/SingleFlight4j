@@ -7,7 +7,10 @@ import lombok.Data;
 public class Result<V> {
     public enum RESULT_TYPE{
         CONSUMER("CONSUMER"),
-        PRODUCER("PRODUCER");
+        CONSUMER_TIME_OUT("CONSUMER_TIME_OUT"),
+        PRODUCER("PRODUCER"),
+//        PRODUCER_TIME_UP("PRODUCER_TIME_UP"),
+        ;
         public String type;
         RESULT_TYPE(String type) {
             this.type = type;
